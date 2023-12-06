@@ -1,6 +1,4 @@
-Vérifier que tous les voteurs ont voté à la fin du vote
 Calcul des votes dès que le vote time est terminé
-Ajout d'une méthode pour avoir les id des proposals
-Cas des ex aequo sur les proposals
 check if proposal doesn't already exists
-séparer les énums & objets dans des fichiers à part
+
+Gestion vote blanc

@@ -20,6 +20,7 @@ Appart from what's asked in the exercise's statement, here is what I considered 
   - You can't compute the winning proposal is there is no proposal
   - You can't vote twice, and you can only vote for an existing proposal
 - To answer to the statement "Vote isn't secret to whitelisted users", I chose to let my voters map as private, and make a limited access getter : showCurrentVotes(). Also, I decided to make this getter output something more user friendly than default solity mapping logs
+- I made a getter 'showProposals', which returns a list of all proposals and their id. For me it's mandatory to make voters be able to vote
 - I made an enum to string function (\_getWorkflowStatusString()), for previous point
 - I decided to make a getter for showing the winning proposal instead of making the \_winningProposalId variable public. This allows me, with a modifier, to answer only if the results has been computed, or give to the user a comprehensive message if it's not the case
 - As the statement wasn't clear about this point, I gave the possibility when adding voters to provide a list, or a single address. The list method will loop over the list and use the single address method.
@@ -31,4 +32,5 @@ Appart from what's asked in the exercise's statement, here is what I considered 
 For this version, I decided to add following logics :
 
 - When the administrator wants to end voting time, the operation will fail if there are voters that did'nt vote. Calling this method and getting an error message saying that there are missing votes will switch a boolean, unlocking a method "forceEndVoteTime()"
-- Added a methode "forceEndVote" to be able to
+- Added a method "forceEndVoteTime()" to be able to close vote time even if not every voter has vote
+- If there is an ex-aequo during vote tally, le winning proposal will be the first to reach the maximum vote amount. To do that, I added a property "lastVoteTimestamp" on the Proposal struct

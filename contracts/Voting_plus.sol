@@ -3,6 +3,7 @@ pragma solidity ^0.8.23;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
+import "hardhat/console.sol";
 
 /*
 * @title A simple vote system, managed by an administrator, allowing registered users to make proposals and vote.
@@ -21,6 +22,7 @@ contract Voting is Ownable {
     struct Proposal {
         string description;
         uint voteCount;
+        uint lastVoteTimestamp;
     }
 
     enum WorkflowStatus {
@@ -39,7 +41,7 @@ contract Voting is Ownable {
 
     mapping(uint => Proposal) _proposals;
     uint _nbProposals;
-    Proposal _winningProposalId;
+    Proposal _winningProposal;
 
     bool _forceEndVoteTimeUnlocked;
 
@@ -156,13 +158,13 @@ contract Voting is Ownable {
     * @author Julien P.
     * @dev Checks if the vote time is started, then stop it
     * @notice Only the contract's owner can call this method
-    * @notice 
+    * @notice If there are missing votes, the method won't do anything. You must use forceEndVoteTime() to end vote time even with voters that didn't vote
     */
     function endVoteTime() external onlyOwner CheckStatusIsGood(WorkflowStatus.VotingSessionStarted) {
         uint missingVotes = countHowManyVotesAreMissing();
         if (missingVotes != 0) {
             _forceEndVoteTimeUnlocked = true;
-            throw(string.concat("There is ", Strings.toString(missingVotes), " missing vote !"));
+            console.log(string.concat("There is ", Strings.toString(missingVotes), " missing vote !"));
         } else {
             emit WorkflowStatusChange(_workflowStatus, WorkflowStatus.VotingSessionEnded);
             _workflowStatus = WorkflowStatus.VotingSessionEnded;
@@ -171,22 +173,40 @@ contract Voting is Ownable {
 
     /*
     * @author Julien P.
-    * @dev Compute the winning proposal from voters voters, and change the workflow status
+    * @dev Checks if the vote time is started, then stop it
     * @notice Only the contract's owner can call this method
+    * @notice Will end vote time even if there are voters that didn't vote yet. You must try to call 'endVoteTime()' first before forcing
+    */
+    function forceEndVoteTime() external onlyOwner CheckStatusIsGood(WorkflowStatus.VotingSessionStarted) {
+        require(_forceEndVoteTimeUnlocked, "You must try to use 'endVoteTime' first, that is safer");
+        
+        emit WorkflowStatusChange(_workflowStatus, WorkflowStatus.VotingSessionEnded);
+        _workflowStatus = WorkflowStatus.VotingSessionEnded;
+    }
+
+    /*
+    * @author Julien P.
+    * @dev Compute the winning proposal from voters, and change the workflow status
+    * @notice Only the contract's owner can call this method
+    * @notice If there is an ex-aequo situation, the first proposal to reach the max vote amount will be the winning proposal
     */
     function computeWinningProposal() external onlyOwner CheckStatusIsGood(WorkflowStatus.VotingSessionEnded) {
         require(_nbProposals > 0, "No proposal has been made, can't find a winner");
 
-        _winningProposalId = Proposal("", 0);
+        _winningProposal = Proposal("", 0, block.timestamp);
 
         // We start at 1, as the id range is 1 to 2^256
         for (uint i = 1; i < _nbProposals; i++) {
-            // We use >= condition here to ensure that the default proposal defined before will be replaced
-            if (_proposals[i].voteCount >= _winningProposalId.voteCount) {
-                _winningProposalId = _proposals[i];
+            // We use > condition here to ensure that the default proposal defined before will be replaced
+            if (_proposals[i].voteCount > _winningProposal.voteCount) {
+                _winningProposal = _proposals[i];
+            } else if (_proposals[i].voteCount == _winningProposal.voteCount 
+                && _proposals[i].lastVoteTimestamp < _winningProposal.lastVoteTimestamp) {
+                    // If there is an ex-aequo, we take the first proposal to reach this vote amount
+                    // This condition also ensure that the default _winningConditionValue won't be returned to the user
+                    _winningProposal = _proposals[i];
             }
         }
-        
 
         // We set the status to "VotesTallied", to make the method "getWinner()" be able to work.
         emit WorkflowStatusChange(_workflowStatus, WorkflowStatus.VotesTallied);
@@ -201,9 +221,10 @@ contract Voting is Ownable {
     */
     function makeProposal(string calldata proposal) external OnlyWhiteListedVoters(msg.sender) {        
         require(_workflowStatus == WorkflowStatus.ProposalsRegistrationStarted, "The proposal time is over, you can't give your proposal anymore");
+        require(bytes(proposal).length > 0, "Your proposal is empty !");
 
         // Creating new proposal
-        Proposal memory newProposal = Proposal(proposal, 0);
+        Proposal memory newProposal = Proposal(proposal, 0, block.timestamp);
 
         // Incrementing proposals numbers / id & storing the proposal, starting with id 1
         _proposals[++_nbProposals] = newProposal;
@@ -236,19 +257,36 @@ contract Voting is Ownable {
     * @dev Returns the voted proposal, if the votes have been tallied
     */
     function getWinner() external view CheckStatusIsGood(WorkflowStatus.VotesTallied) returns (Proposal memory) {
-        return _winningProposalId;
+        return _winningProposal;
     }
 
     /*
     * @author Julien P.
-    * @dev Allows registered voters to show votes status
-    * @notice Only whitelisted voters can make a vote
+    * @notice Allows registered voters to show all proposals
+    * @notice Only whitelisted voters can show all proposals
     */
-    function showCurrentVotes() external view OnlyWhiteListedVoters(msg.sender) returns (string memory) {
-        string memory result;
+    function showProposals() external view OnlyWhiteListedVoters(msg.sender) returns (string[] memory) {
+        string[] memory result = new string[](_nbProposals);
+
+        for (uint i = 0; i < _nbProposals - 1; i++) {
+            result[i] = string.concat(
+                "Proposal id : ", Strings.toString(i), 
+                "  proposal description : ", _proposals[i].description);
+        }
+
+        return result;
+    }
+    
+    /*
+    * @author Julien P.
+    * @dev Allows registered voters to show votes status
+    * @notice Only whitelisted voters can show current votes
+    */
+    function showCurrentVotes() external view OnlyWhiteListedVoters(msg.sender) returns (string[] memory) {
+        string[] memory result = new string[](_votersWhitelist.length);
 
         for (uint i = 0; i < _votersWhitelist.length - 1; i++) {
-            result = string.concat(result, "\r\n", // Adding carriage return
+            result[i] = string.concat(
                 "Voter : ", Strings.toHexString(uint256(uint160(_votersWhitelist[i])), 20), 
                 "  proposal id voted : ", Strings.toString(_votersMap[_votersWhitelist[i]].votedProposalId));
         }
@@ -256,6 +294,35 @@ contract Voting is Ownable {
         return result;
     }
 
+    
+    /*
+    * @author Julien P.
+    * @notice Get a voter by his address
+    * @notice Trigger an error if this address isn't registered
+    */
+    function getVoter(address voterAddress) external view returns (Voter memory) {
+        Voter memory result = _votersMap[voterAddress];
+        
+        // If 'isRegistered' is false, it means that it's a default value returned, and that there is no voter with this address
+        require(result.isRegistered, "There is no registered voter with this address !");
+
+        return result;
+    }
+
+    
+    /*
+    * @author Julien P.
+    * @notice Get a proposal by her id
+    * @notice Trigger an error if there is no proposal with this id
+    */
+    function getProposal(uint proposalId) external view returns (Proposal memory) {
+        Proposal memory result = _proposals[proposalId];
+
+        // If found proposal description is empty, it means that it's a default value returned, and that there is no proposal with this id
+        require(bytes(result.description).length == 0, "There is no proposal with this id !");
+
+        return result;
+    }
     
 
     /*************************************
