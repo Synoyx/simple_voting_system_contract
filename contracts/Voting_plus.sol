@@ -41,6 +41,8 @@ contract Voting is Ownable {
     uint _nbProposals;
     Proposal _winningProposalId;
 
+    bool _forceEndVoteTimeUnlocked;
+
     
     /*************************************
     *              Events                *
@@ -73,7 +75,7 @@ contract Voting is Ownable {
     * @param addressToTest The address to test
     */
     modifier OnlyWhiteListedVoters(address addressToTest) {
-        require(_votersMap[addressToTest].isRegistered, "You're not allowed to vote !");
+        require(_votersMap[addressToTest].isRegistered, "You're not allowed to do that !");
         _;
     }
 
@@ -83,7 +85,7 @@ contract Voting is Ownable {
     * @param status The status to compare to the current workflow status
     */
     modifier CheckStatusIsGood(WorkflowStatus status) {
-        require(status == WorkflowStatus.RegisteringVoters, 
+        require(_workflowStatus == status, 
             string.concat("You can't do that in the current status : ", _getWorkflowStatusString()));
         _;
     }
@@ -100,8 +102,10 @@ contract Voting is Ownable {
     * @param voterAddress The address to add to the whitelist
     */
     function registerVoter(address voterAddress) public onlyOwner {
-        _votersMap[msg.sender] = Voter(true, false, 0);
-        _votersWhitelist.push(msg.sender);
+        require(voterAddress != address(0), "The given address is empty !");
+
+        _votersMap[voterAddress] = Voter(true, false, 0);
+        _votersWhitelist.push(voterAddress);
 
         emit VoterRegistered(voterAddress);
     }
@@ -152,12 +156,19 @@ contract Voting is Ownable {
     * @author Julien P.
     * @dev Checks if the vote time is started, then stop it
     * @notice Only the contract's owner can call this method
+    * @notice 
     */
     function endVoteTime() external onlyOwner CheckStatusIsGood(WorkflowStatus.VotingSessionStarted) {
-        emit WorkflowStatusChange(_workflowStatus, WorkflowStatus.VotingSessionEnded);
-        _workflowStatus = WorkflowStatus.VotingSessionEnded;
+        uint missingVotes = countHowManyVotesAreMissing();
+        if (missingVotes != 0) {
+            _forceEndVoteTimeUnlocked = true;
+            throw(string.concat("There is ", Strings.toString(missingVotes), " missing vote !"));
+        } else {
+            emit WorkflowStatusChange(_workflowStatus, WorkflowStatus.VotingSessionEnded);
+            _workflowStatus = WorkflowStatus.VotingSessionEnded;
+        }
     }
-    
+
     /*
     * @author Julien P.
     * @dev Compute the winning proposal from voters voters, and change the workflow status
@@ -203,12 +214,13 @@ contract Voting is Ownable {
 
     /*
     * @author Julien P.
-    * @dev Allows whitelisted users to vote, when voting time is active
+    * @dev Allows whitelisted users to vote, when voting time is active, and if he has'nt already voted
     * @notice Only whitelisted voters can make a vote
     * @param proposalId The voter's proposal id vote
     */
     function vote(uint proposalId) external OnlyWhiteListedVoters(msg.sender) {
         require(_workflowStatus == WorkflowStatus.VotingSessionStarted, "It's not vote time, you can't vote");
+        require(!_votersMap[msg.sender].hasVoted, "You have already voted");
         require(proposalId > 0 && proposalId <= _nbProposals, "The given proposal id doesn't exists");
 
         _proposals[proposalId].voteCount += 1;
@@ -265,5 +277,15 @@ contract Voting is Ownable {
         if (_workflowStatus == WorkflowStatus.VotesTallied) return "Votes tallied";
 
         return "Error while cast status to string";
+    }
+    
+    function countHowManyVotesAreMissing() internal view returns (uint) {
+        uint missingVotes = 0;
+
+        for (uint i = 0; i < _votersWhitelist.length - 1; i++) {
+            if (!_votersMap[_votersWhitelist[i]].hasVoted) missingVotes++;
+        }
+
+        return missingVotes;
     }
 }

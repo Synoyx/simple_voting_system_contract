@@ -73,7 +73,7 @@ contract Voting is Ownable {
     * @param addressToTest The address to test
     */
     modifier OnlyWhiteListedVoters(address addressToTest) {
-        require(_votersMap[addressToTest].isRegistered, "You're not allowed to vote !");
+        require(_votersMap[addressToTest].isRegistered, "You're not allowed to do that !");
         _;
     }
 
@@ -83,7 +83,7 @@ contract Voting is Ownable {
     * @param status The status to compare to the current workflow status
     */
     modifier CheckStatusIsGood(WorkflowStatus status) {
-        require(status == WorkflowStatus.RegisteringVoters, 
+        require(_workflowStatus == status, 
             string.concat("You can't do that in the current status : ", _getWorkflowStatusString()));
         _;
     }
@@ -102,8 +102,8 @@ contract Voting is Ownable {
     function registerVoter(address voterAddress) public onlyOwner {
         require(voterAddress != address(0), "The given address is empty !");
 
-        _votersMap[msg.sender] = Voter(true, false, 0);
-        _votersWhitelist.push(msg.sender);
+        _votersMap[voterAddress] = Voter(true, false, 0);
+        _votersWhitelist.push(voterAddress);
 
         emit VoterRegistered(voterAddress);
     }

@@ -28,6 +28,7 @@ Appart from what's asked in the exercise's statement, here is what I considered 
 
 ### Voting_plus.sol
 
-For this version, I decided to add some logic :
+For this version, I decided to add following logics :
 
--
+- When the administrator wants to end voting time, the operation will fail if there are voters that did'nt vote. Calling this method and getting an error message saying that there are missing votes will switch a boolean, unlocking a method "forceEndVoteTime()"
+- Added a methode "forceEndVote" to be able to
