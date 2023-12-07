@@ -19,10 +19,10 @@ Apart from what's asked in the exercise's statement, here is what I considered a
   - Also, some operations can only be made if the current workflow status is in a certain stage
   - You can't compute the winning proposal if there are no proposals
   - You can't vote twice, and you can only vote for an existing proposal
-- To answer to the statement "Vote isn't secret to whitelisted users", I chose to let my voters map as private, and make a limited access getter : showCurrentVotes(). Also, I decided to make this getter output something more user friendly than default Solidity mapping logs
-- I created a getter called 'showProposals', which returns a list of all proposals and their id. For me it's mandatory to make voters be able to vote
+- To answer to the statement "Vote isn't secret to whitelisted users", I chose to let my voters map as private, and make a limited access getter : showCurrentVotes(). Also, I decided to make this getter output something more user friendly than default Solidity mapping logs, as there is not frond-end to do it
+- I created a getter called 'showProposals', which returns a list of all proposals and their id. For me it's mandatory to make voters be able to vote. I decided to make this getter output something more user friendly than default Solidity mapping logs, as there is not frond-end to do it
 - I made an enum-to-string function (\_getWorkflowStatusString()), for previous point
-- I decided to make a getter for showing the winning proposal instead of making the \_winningProposalId variable public. This allows me, with a modifier, to answer only if the results has been computed, or give to the user a comprehensive message if it's not the case
+- I decided to make a getter for showing the winning proposal instead of making the \_winningProposalId variable public. This allows me, with a modifier, to answer only if the results has been computed, or give to the user a comprehensive message if it's not the case. I return the proposal, to show not only the winning proposal's id, but also the description
 - As the statement wasn't clear on this point, I gave the possibility when adding voters to provide a list, or a single address. The list method will loop over the list and use the single-address method.
 - To compute the winning proposal, as it's the simple version I just take the proposal with the most votes, lastly added (due to how I made the algorithm)
 - To easily check proposals, and store them efficiently, I decided to store them in a mapping, with an incrementing id as key. I store the number of proposal (\_nbProposals) in a separated variable, which allows me to simply loop over the keys, as the id goes from 1 to \_nbProposals.

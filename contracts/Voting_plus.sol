@@ -11,7 +11,7 @@ import "hardhat/console.sol";
 */
 contract Voting is Ownable {
     /*************************************
-    *             Variables              *
+    *              Structs               *
     **************************************/
     struct Voter {
         bool isRegistered;
@@ -34,6 +34,11 @@ contract Voting is Ownable {
         VotesTallied
     }
 
+
+    /*************************************
+    *             Variables              *
+    **************************************/
+
     WorkflowStatus _workflowStatus;
 
     mapping(address => Voter) _votersMap;
@@ -41,6 +46,7 @@ contract Voting is Ownable {
 
     mapping(uint => Proposal) _proposals;
     uint _nbProposals;
+
     Proposal _winningProposal;
 
     bool _forceEndVoteTimeUnlocked;
@@ -62,7 +68,7 @@ contract Voting is Ownable {
 
     /*
     * @author Julien P.
-    * @dev Starting the Ownable pattern
+    * @notice Starts the Ownable pattern
     */
     constructor() Ownable(msg.sender) {}
     
@@ -99,8 +105,10 @@ contract Voting is Ownable {
 
     /*
     * @author Julien P.
-    * @dev Adds a voter to the list
-    * @notice Only the contract's owner can call this method
+    * @dev We must let the visibility public, as the method is called internally by "registerVoters"
+    * @notice
+    *   Adds a voter to the list
+    *   Only the contract's owner can call this method
     * @param voterAddress The address to add to the whitelist
     */
     function registerVoter(address voterAddress) public onlyOwner {
@@ -114,20 +122,22 @@ contract Voting is Ownable {
 
     /*
     * @author Julien P.
-    * @dev add a list of voters
-    * @notice Only the contract's owner can call this method 
+    * @notice 
+    *   Adds a list of voters
+    *   Only the contract's owner can call this method 
     * @param votersAddresses an array of voters addresses to add to the whitelist
     */
     function registerVoters(address[] calldata votersAddresses) external onlyOwner {
-        for(uint i = 0; i < votersAddresses.length - 1; i++) {
+        for(uint i; i < votersAddresses.length; i++) {
             registerVoter(votersAddresses[i]);
         }
     }
 
     /*
     * @author Julien P.
-    * @dev Checks if the workflow status is in the right state, then start the proposal time.
-    * @notice Only the contract's owner can call this method
+    * @notice 
+    *   Checks if the workflow status is in the right state, then start the proposal time.
+    *   Only the contract's owner can call this method
     */
     function startProposalTime() external onlyOwner CheckStatusIsGood(WorkflowStatus.RegisteringVoters) {
         emit WorkflowStatusChange(_workflowStatus, WorkflowStatus.ProposalsRegistrationStarted);
@@ -136,8 +146,9 @@ contract Voting is Ownable {
 
     /*
     * @author Julien P.
-    * @dev Checks if proposals registration are started, then stop it
-    * @notice Only the contract's owner can call this method
+    * @notice
+    *   Checks if proposals registration are started, if some proposals has been made, then stop it
+    *   Only the contract's owner can call this method
     */
     function endProposalTime() external onlyOwner CheckStatusIsGood(WorkflowStatus.ProposalsRegistrationStarted) {
         require(_nbProposals > 0, "No proposal has been made yet, can't close proposal time !");
@@ -148,8 +159,9 @@ contract Voting is Ownable {
 
     /*
     * @author Julien P.
-    * @dev Checks if the workflow stats is in the right state, then start the vote time
-    * @notice Only the contract's owner can call this method
+    * @notice 
+    *   Checks if the workflow status is in the right state, then start the vote time
+    *   Only the contract's owner can call this method
     */
     function startVoteTime() external onlyOwner CheckStatusIsGood(WorkflowStatus.ProposalsRegistrationEnded) {
         emit WorkflowStatusChange(_workflowStatus, WorkflowStatus.VotingSessionStarted);
@@ -158,9 +170,10 @@ contract Voting is Ownable {
 
     /*
     * @author Julien P.
-    * @dev Checks if the vote time is started, then stop it
-    * @notice Only the contract's owner can call this method
-    * @notice If there are missing votes, the method won't do anything. You must use forceEndVoteTime() to end vote time even with voters that didn't vote
+    * @notice 
+    *   Checks if the vote time is started and if there has been votes, then stop it
+    *   If you had an error "The is X missing vote" you can force the process with 'forceEndVoteTime()'
+    *   Only the contract's owner can call this method
     */
     function endVoteTime() external onlyOwner CheckStatusIsGood(WorkflowStatus.VotingSessionStarted) {
         uint missingVotes = countHowManyVotesAreMissing();
@@ -174,9 +187,10 @@ contract Voting is Ownable {
 
     /*
     * @author Julien P.
-    * @dev Checks if the vote time is started, then stop it
-    * @notice Only the contract's owner can call this method
-    * @notice Will end vote time even if there are voters that didn't vote yet. You must try to call 'endVoteTime()' first before forcing
+    * @notice 
+    *   Checks if the vote time is started, then stop it
+    *   You can only use this method if you called 'endVoteTime()' method and had error "The is X missing vote"
+    *   Only the contract's owner can call this method
     */
     function forceEndVoteTime() external onlyOwner CheckStatusIsGood(WorkflowStatus.VotingSessionStarted) {
         require(_forceEndVoteTimeUnlocked, "You must try to use 'endVoteTime' first, that is safer");
@@ -184,6 +198,11 @@ contract Voting is Ownable {
         endVoteTimeAndTally();
     }
 
+
+    /*
+    * @author Julien P.
+    * @dev Internal method to factorize end vote time action
+    */
     function endVoteTimeAndTally() internal onlyOwner {
         emit WorkflowStatusChange(_workflowStatus, WorkflowStatus.VotingSessionEnded);
         _workflowStatus = WorkflowStatus.VotingSessionEnded;
@@ -193,10 +212,11 @@ contract Voting is Ownable {
 
     /*
     * @author Julien P.
-    * @dev Compute the winning proposal from voters, and change the workflow status
-    * @notice Only the contract's owner can call this method
-    * @notice If there is an ex-aequo situation, the first proposal to reach the max vote amount will be the winning proposal
-    * @notice If there is only blank votes, the first proposal made will be considered as the winning one
+    * @notice 
+    *   Compute the winning proposal from voters, and change the workflow status
+    *   If there is an ex-aequo situation, the first proposal to reach the max vote amount will be the winning proposal
+    *   If there is only blank votes, the first proposal made will be considered as the winning one
+    *   Only the contract's owner can call this method
     */
     function computeWinningProposal() internal onlyOwner {
         _winningProposal = Proposal("", 0, block.timestamp);
@@ -221,19 +241,17 @@ contract Voting is Ownable {
 
     /*
     * @author Julien P.
-    * @dev Allows whitelisted users to vote, when the proposal registration is open
-    * @notice Only whitelisted voters can make a proposal
+    * @notice 
+    *   Allows whitelisted users to vote, when the proposal registration is open, and if the given proposal isn't empty
+    *   Only whitelisted voters can make a proposal
     * @param proposal The voter's proposal
     */
     function makeProposal(string calldata proposal) external OnlyWhiteListedVoters(msg.sender) {        
         require(_workflowStatus == WorkflowStatus.ProposalsRegistrationStarted, "The proposal time is over, you can't give your proposal anymore");
         require(bytes(proposal).length > 0, "Your proposal is empty !");
 
-        // Creating new proposal
-        Proposal memory newProposal = Proposal(proposal, 0, block.timestamp);
-
         // Incrementing proposals numbers / id & storing the proposal, starting with id 1
-        _proposals[++_nbProposals] = newProposal;
+        _proposals[++_nbProposals] = Proposal(proposal, 0, block.timestamp);
 
 
         emit ProposalRegistered(_nbProposals);
@@ -241,9 +259,12 @@ contract Voting is Ownable {
 
     /*
     * @author Julien P.
-    * @dev Allows whitelisted users to vote, when voting time is active, and if he has'nt already voted
-    * @notice Only whitelisted voters can make a vote
-    * @notice Proposal ids goes from 1 to 2^256. We consider the 0 value as a blank vote.
+    * @notice 
+    *   Allows whitelisted users to vote, when voting time is active, and if he has'nt already voted
+    *   Proposal ids goes from 1 to 2^256.
+    *   You can use the method 'showProposals()' to get the list of all proposals and their ids
+    *   Proposal ids goes from 1 to 2^256. We consider the 0 value as a blank vote.
+    *   Only whitelisted voters can make a vote
     * @param proposalId The voter's proposal id vote
     */
     function vote(uint proposalId) external OnlyWhiteListedVoters(msg.sender) {
@@ -261,7 +282,8 @@ contract Voting is Ownable {
 
     /*
     * @author Julien P.
-    * @dev Returns the voted proposal, if the votes have been tallied
+    * @notice Returns the voted proposal, if the votes have been tallied
+    * @return   Proposal    The winning proposal
     */
     function getWinner() external view CheckStatusIsGood(WorkflowStatus.VotesTallied) returns (Proposal memory) {
         return _winningProposal;
@@ -269,8 +291,10 @@ contract Voting is Ownable {
 
     /*
     * @author Julien P.
-    * @notice Allows registered voters to show all proposals
-    * @notice Only whitelisted voters can show all proposals
+    * @notice 
+    *   Allows registered voters to show all proposals
+    *   Only whitelisted voters can show all proposals
+    * @return   string[]  A well formated list of proposal ids and their description
     */
     function showProposals() external view OnlyWhiteListedVoters(msg.sender) returns (string[] memory) {
         string[] memory result = new string[](_nbProposals);
@@ -287,15 +311,20 @@ contract Voting is Ownable {
         return result;
     }
     
+   
     /*
     * @author Julien P.
-    * @dev Allows registered voters to show votes status
-    * @notice Only whitelisted voters can show current votes
+    * @notice 
+    *   Allows registered voters to show votes status
+    *   Only whitelisted voters can show current votes
+    * @return   string[]    A well formated list of each voter and his proposal ID vote
     */
     function showCurrentVotes() external view OnlyWhiteListedVoters(msg.sender) returns (string[] memory) {
         string[] memory result = new string[](_votersWhitelist.length);
 
-        for (uint i = 0; i < _votersWhitelist.length - 1; i++) {
+        // TODO : if he hasn't voted, show -1 on proposal id, because 0 is blacnk vote
+
+        for (uint i; i < _votersWhitelist.length - 1; i++) {
             result[i] = string.concat(
                 "Voter : ", Strings.toHexString(uint256(uint160(_votersWhitelist[i])), 20), 
                 "  proposal id voted : ", Strings.toString(_votersMap[_votersWhitelist[i]].votedProposalId));
@@ -307,8 +336,10 @@ contract Voting is Ownable {
     
     /*
     * @author Julien P.
-    * @notice Get a voter by his address
-    * @notice Trigger an error if this address isn't registered
+    * @notice 
+    *   Get a voter by his address
+    *   Trigger an error if this address isn't registered
+    * @return   Voter The voter corresponding to the given address
     */
     function getVoter(address voterAddress) external view returns (Voter memory) {
         Voter memory result = _votersMap[voterAddress];
@@ -319,11 +350,13 @@ contract Voting is Ownable {
         return result;
     }
 
-    
+
     /*
     * @author Julien P.
-    * @notice Get a proposal by her id
-    * @notice Trigger an error if there is no proposal with this id
+    * @notice 
+    *   Get a proposal by her id
+    *   Trigger an error if there is no proposal with this id
+    * @return   Proposal  The proposal with the given id
     */
     function getProposal(uint proposalId) external view returns (Proposal memory) {
         Proposal memory result = _proposals[proposalId];
@@ -342,6 +375,7 @@ contract Voting is Ownable {
     /*
     * @author Julien P.
     * @dev Used to convert enum value to displayable string for logging purpose
+    * @return   string  The displayable text corresponding to the current workflow status
     */
     function _getWorkflowStatusString() internal view returns (string memory) {
         if (_workflowStatus == WorkflowStatus.RegisteringVoters) return "Registering voters";
@@ -354,6 +388,11 @@ contract Voting is Ownable {
         return "Error while cast status to string";
     }
     
+    /*
+    * @author Julien P.
+    * @dev Internal method to count how many votes are missing
+    * @return   uint  The number of missing votes
+    */
     function countHowManyVotesAreMissing() internal view returns (uint) {
         uint missingVotes = 0;
 
