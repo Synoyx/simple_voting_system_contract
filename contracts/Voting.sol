@@ -45,7 +45,7 @@ contract Voting is Ownable {
     mapping(uint => Proposal) _proposals;
     uint _nbProposals;
 
-    Proposal _winningProposal;
+    uint _winningProposalId;
 
     
     /*************************************
@@ -140,7 +140,7 @@ contract Voting is Ownable {
     *   Only the contract's owner can call this method
     */
     function startProposalTime() external onlyOwner CheckStatusIsGood(WorkflowStatus.RegisteringVoters) {
-        require(_votersWhitelist.length > 1, "You must add at least one voter to start proposal time !");
+        require(_votersWhitelist.length > 0, "You must add at least one voter to start proposal time !");
 
         emit WorkflowStatusChange(_workflowStatus, WorkflowStatus.ProposalsRegistrationStarted);
         _workflowStatus = WorkflowStatus.ProposalsRegistrationStarted;
@@ -189,13 +189,11 @@ contract Voting is Ownable {
     *   Only the contract's owner can call this method
     */
     function computeWinningProposal() external onlyOwner CheckStatusIsGood(WorkflowStatus.VotingSessionEnded) {
-        _winningProposal = Proposal("", 0);
-
         // We start at 1 as, in this case, the id range goes from 1 to _nbProposals
         for (uint i = 1; i <= _nbProposals; i++) {
             // We use >= condition here to ensure that the default proposal defined before will be replaced
-            if (_proposals[i].voteCount >= _winningProposal.voteCount) {
-                _winningProposal = _proposals[i];
+            if (_proposals[i].voteCount >= _proposals[_winningProposalId].voteCount) {
+                _winningProposalId = i;
             }
         }
         
@@ -247,11 +245,13 @@ contract Voting is Ownable {
 
     /*
     * @author Julien P.
-    * @notice Returns the voted proposal, if the votes have been tallied
-    * @return   Proposal    The winning proposal
+    * @notice 
+    *   Returns the voted proposal, if the votes have been tallied
+    *   We return the winning proposal as a displayable string, as there is no front-end
+    * @return   string    The winning proposal
     */
-    function getWinner() external view CheckStatusIsGood(WorkflowStatus.VotesTallied) returns (Proposal memory) {
-        return _winningProposal;
+    function getWinner() external view CheckStatusIsGood(WorkflowStatus.VotesTallied) returns (string memory) {
+        return _getProposalString(_proposals[_winningProposalId], _winningProposalId);
     }
 
     /*
