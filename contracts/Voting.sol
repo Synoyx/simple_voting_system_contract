@@ -114,7 +114,7 @@ contract Voting is Ownable {
     * @notice Only the contract's owner can call this method 
     * @param votersAddresses an array of voters addresses to add to the whitelist
     */
-    function registerVoters(address[] memory votersAddresses) external onlyOwner {
+    function registerVoters(address[] calldata votersAddresses) external onlyOwner {
         for(uint i = 0; i < votersAddresses.length - 1; i++) {
             registerVoter(votersAddresses[i]);
         }
