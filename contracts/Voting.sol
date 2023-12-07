@@ -136,6 +136,8 @@ contract Voting is Ownable {
     * @notice Only the contract's owner can call this method
     */
     function endProposalTime() external onlyOwner CheckStatusIsGood(WorkflowStatus.ProposalsRegistrationStarted) {
+        require(_nbProposals > 0, "No proposal has been made yet, can't close proposal time !");
+
         emit WorkflowStatusChange(_workflowStatus, WorkflowStatus.ProposalsRegistrationEnded);
         _workflowStatus = WorkflowStatus.ProposalsRegistrationEnded;
     }
@@ -166,8 +168,6 @@ contract Voting is Ownable {
     * @notice Only the contract's owner can call this method
     */
     function computeWinningProposal() external onlyOwner CheckStatusIsGood(WorkflowStatus.VotingSessionEnded) {
-        require(_nbProposals > 0, "No proposal has been made, can't find a winner");
-
         _winningProposal = Proposal("", 0);
 
         // We start at 1, as the id range is 1 to 2^256
@@ -206,16 +206,17 @@ contract Voting is Ownable {
 
     /*
     * @author Julien P.
-    * @dev Allows whitelisted users to vote, when voting time is active, and if he has'nt already voted
+    * @notice Allows whitelisted users to vote, when voting time is active, and if he has'nt already voted
+    * @notice Proposal ids goes from 1 to 2^256. We consider the 0 value as a blank vote.
     * @notice Only whitelisted voters can make a vote
     * @param proposalId The voter's proposal id vote
     */
     function vote(uint proposalId) external OnlyWhiteListedVoters(msg.sender) {
         require(_workflowStatus == WorkflowStatus.VotingSessionStarted, "It's not vote time, you can't vote");
         require(!_votersMap[msg.sender].hasVoted, "You have already voted");
-        require(proposalId > 0 && proposalId <= _nbProposals, "The given proposal id doesn't exists");
+        require(proposalId >= 0 && proposalId <= _nbProposals, "The given proposal id doesn't exists");
 
-        _proposals[proposalId].voteCount += 1;
+        if (proposalId > 0) _proposals[proposalId].voteCount += 1;
 
         _votersMap[msg.sender].hasVoted = true;
         _votersMap[msg.sender].votedProposalId = proposalId;
@@ -303,8 +304,6 @@ contract Voting is Ownable {
     /*
     * @author Julien P.
     * @dev Used to convert enum value to displayable string for logging purpose
-    * @param str1 The first string to compare
-    * @parem str2 The second string to compare
     */
     function _getWorkflowStatusString() internal view returns (string memory) {
         if (_workflowStatus == WorkflowStatus.RegisteringVoters) return "Registering voters";

@@ -1,4 +1,1 @@
-Calcul des votes dès que le vote time est terminé
 check if proposal doesn't already exists
-
-Gestion vote blanc

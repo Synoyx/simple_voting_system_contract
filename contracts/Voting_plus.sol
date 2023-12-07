@@ -140,6 +140,8 @@ contract Voting is Ownable {
     * @notice Only the contract's owner can call this method
     */
     function endProposalTime() external onlyOwner CheckStatusIsGood(WorkflowStatus.ProposalsRegistrationStarted) {
+        require(_nbProposals > 0, "No proposal has been made yet, can't close proposal time !");
+
         emit WorkflowStatusChange(_workflowStatus, WorkflowStatus.ProposalsRegistrationEnded);
         _workflowStatus = WorkflowStatus.ProposalsRegistrationEnded;
     }
@@ -166,8 +168,7 @@ contract Voting is Ownable {
             _forceEndVoteTimeUnlocked = true;
             console.log(string.concat("There is ", Strings.toString(missingVotes), " missing vote !"));
         } else {
-            emit WorkflowStatusChange(_workflowStatus, WorkflowStatus.VotingSessionEnded);
-            _workflowStatus = WorkflowStatus.VotingSessionEnded;
+            endVoteTimeAndTally();
         }
     }
 
@@ -180,8 +181,14 @@ contract Voting is Ownable {
     function forceEndVoteTime() external onlyOwner CheckStatusIsGood(WorkflowStatus.VotingSessionStarted) {
         require(_forceEndVoteTimeUnlocked, "You must try to use 'endVoteTime' first, that is safer");
         
+        endVoteTimeAndTally();
+    }
+
+    function endVoteTimeAndTally() internal onlyOwner {
         emit WorkflowStatusChange(_workflowStatus, WorkflowStatus.VotingSessionEnded);
         _workflowStatus = WorkflowStatus.VotingSessionEnded;
+
+        computeWinningProposal();
     }
 
     /*
@@ -189,13 +196,12 @@ contract Voting is Ownable {
     * @dev Compute the winning proposal from voters, and change the workflow status
     * @notice Only the contract's owner can call this method
     * @notice If there is an ex-aequo situation, the first proposal to reach the max vote amount will be the winning proposal
+    * @notice If there is only blank votes, the first proposal made will be considered as the winning one
     */
-    function computeWinningProposal() external onlyOwner CheckStatusIsGood(WorkflowStatus.VotingSessionEnded) {
-        require(_nbProposals > 0, "No proposal has been made, can't find a winner");
-
+    function computeWinningProposal() internal onlyOwner {
         _winningProposal = Proposal("", 0, block.timestamp);
 
-        // We start at 1, as the id range is 1 to 2^256
+        // We start at 1, as the id range is 1 to _nbProposals
         for (uint i = 1; i < _nbProposals; i++) {
             // We use > condition here to ensure that the default proposal defined before will be replaced
             if (_proposals[i].voteCount > _winningProposal.voteCount) {
@@ -332,8 +338,6 @@ contract Voting is Ownable {
     /*
     * @author Julien P.
     * @dev Used to convert enum value to displayable string for logging purpose
-    * @param str1 The first string to compare
-    * @parem str2 The second string to compare
     */
     function _getWorkflowStatusString() internal view returns (string memory) {
         if (_workflowStatus == WorkflowStatus.RegisteringVoters) return "Registering voters";

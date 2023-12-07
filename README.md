@@ -34,3 +34,5 @@ For this version, I decided to add following logics :
 - When the administrator wants to end voting time, the operation will fail if there are voters that did'nt vote. Calling this method and getting an error message saying that there are missing votes will switch a boolean, unlocking a method "forceEndVoteTime()"
 - Added a method "forceEndVoteTime()" to be able to close vote time even if not every voter has vote
 - If there is an ex-aequo during vote tally, le winning proposal will be the first to reach the maximum vote amount. To do that, I added a property "lastVoteTimestamp" on the Proposal struct
+- I now allow the voters to vote 0, which is a blank vote. It will allow the admin to see that every one has vote. It won't change anything to the results, except if there are only blank votes : if everyoneone made a blank vote, the admin will be able to compute results, and the winning proposal will be the first proposed (ex-aequo situation)
+- As there is no point of making 2 separate phases for ending vote time and tally votes, the computation of winning proposal will occur automaticaly when admin closes vote time. This avoid a useless TX cost.
