@@ -9,7 +9,7 @@ import "hardhat/console.sol";
 * @title A simple vote system, managed by an administrator, allowing registered users to make proposals and vote.
 * @author Julien P.
 */
-contract Voting is Ownable {
+contract VotingPlus is Ownable {
     /*************************************
     *              Structs               *
     **************************************/
@@ -235,6 +235,9 @@ contract Voting is Ownable {
                     // If there is an ex-aequo, we take the first proposal to reach this vote amount
                     // This condition also ensure that the default _winningConditionValue won't be returned to the user
                     _winningProposalId = i;
+            } else if (_proposals[_winningProposalId].lastVoteTimestamp == 0) {
+                // If the winning proposal id is the default value, replace it
+                _winningProposalId = i;
             }
         }
 
