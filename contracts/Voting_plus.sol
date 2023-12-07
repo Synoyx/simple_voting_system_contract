@@ -305,13 +305,15 @@ contract Voting is Ownable {
     function showProposals() external view OnlyWhiteListedVoters(msg.sender) returns (string[] memory) {
         string[] memory result = new string[](_nbProposals);
 
-        // As the blanck vote is a special proposal, we add it manually
-        result[0] = string.concat("Nb blanck votes : ", Strings.toString(_proposals[0].voteCount));
+        if (_nbProposals > 0) { // As we push a default value on the array, we must be sure that his size is at least 1
+            // As the blanck vote is a special proposal, we add it manually
+            result[0] = string.concat("Nb blanck votes : ", Strings.toString(_proposals[0].voteCount));
 
-        for (uint i = 1; i <= _nbProposals; i++) {
-            result[i] = string.concat(
-                "Proposal id : ", Strings.toString(i), 
-                "  proposal description : ", _proposals[i].description, "   nb votes : ", Strings.toString(_proposals[i].voteCount));
+            for (uint i = 1; i <= _nbProposals; i++) {
+                result[i - 1] = string.concat(
+                    "Proposal id : ", Strings.toString(i), 
+                    "  proposal description : ", _proposals[i].description);
+            }
         }
 
         return result;

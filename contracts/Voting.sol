@@ -264,8 +264,8 @@ contract Voting is Ownable {
     function showProposals() external view OnlyWhiteListedVoters(msg.sender) returns (string[] memory) {
         string[] memory result = new string[](_nbProposals);
 
-        for (uint i = 1; i <= _nbProposals - 1; i++) {
-            result[i] = string.concat(
+        for (uint i = 1; i <= _nbProposals; i++) {
+            result[i - 1] = string.concat(
                 "Proposal id : ", Strings.toString(i), 
                 "  proposal description : ", _proposals[i].description);
         }
