@@ -207,16 +207,16 @@ contract Voting is Ownable {
     /*
     * @author Julien P.
     * @notice Allows whitelisted users to vote, when voting time is active, and if he has'nt already voted
-    * @notice Proposal ids goes from 1 to 2^256. We consider the 0 value as a blank vote.
+    * @notice Proposal ids goes from 1 to 2^256.
     * @notice Only whitelisted voters can make a vote
     * @param proposalId The voter's proposal id vote
     */
     function vote(uint proposalId) external OnlyWhiteListedVoters(msg.sender) {
         require(_workflowStatus == WorkflowStatus.VotingSessionStarted, "It's not vote time, you can't vote");
         require(!_votersMap[msg.sender].hasVoted, "You have already voted");
-        require(proposalId >= 0 && proposalId <= _nbProposals, "The given proposal id doesn't exists");
+        require(proposalId > 0 && proposalId <= _nbProposals, "The given proposal id doesn't exists");
 
-        if (proposalId > 0) _proposals[proposalId].voteCount += 1;
+        _proposals[proposalId].voteCount += 1;
 
         _votersMap[msg.sender].hasVoted = true;
         _votersMap[msg.sender].votedProposalId = proposalId;

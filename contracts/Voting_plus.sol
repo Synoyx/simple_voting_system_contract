@@ -202,7 +202,7 @@ contract Voting is Ownable {
         _winningProposal = Proposal("", 0, block.timestamp);
 
         // We start at 1, as the id range is 1 to _nbProposals
-        for (uint i = 1; i < _nbProposals; i++) {
+        for (uint i = 1; i <= _nbProposals; i++) {
             // We use > condition here to ensure that the default proposal defined before will be replaced
             if (_proposals[i].voteCount > _winningProposal.voteCount) {
                 _winningProposal = _proposals[i];
@@ -243,14 +243,15 @@ contract Voting is Ownable {
     * @author Julien P.
     * @dev Allows whitelisted users to vote, when voting time is active, and if he has'nt already voted
     * @notice Only whitelisted voters can make a vote
+    * @notice Proposal ids goes from 1 to 2^256. We consider the 0 value as a blank vote.
     * @param proposalId The voter's proposal id vote
     */
     function vote(uint proposalId) external OnlyWhiteListedVoters(msg.sender) {
         require(_workflowStatus == WorkflowStatus.VotingSessionStarted, "It's not vote time, you can't vote");
         require(!_votersMap[msg.sender].hasVoted, "You have already voted");
-        require(proposalId > 0 && proposalId <= _nbProposals, "The given proposal id doesn't exists");
+        require(proposalId >= 0 && proposalId <= _nbProposals, "The given proposal id doesn't exists");
 
-        _proposals[proposalId].voteCount += 1;
+        if (proposalId > 0)  _proposals[proposalId].voteCount += 1;
 
         _votersMap[msg.sender].hasVoted = true;
         _votersMap[msg.sender].votedProposalId = proposalId;
@@ -274,10 +275,13 @@ contract Voting is Ownable {
     function showProposals() external view OnlyWhiteListedVoters(msg.sender) returns (string[] memory) {
         string[] memory result = new string[](_nbProposals);
 
-        for (uint i = 0; i < _nbProposals - 1; i++) {
+        // As the blanck vote is a special proposal, we add it manually
+        result[0] = string.concat("Nb blanck votes : ", Strings.toString(_proposals[0].voteCount));
+
+        for (uint i = 1; i <= _nbProposals; i++) {
             result[i] = string.concat(
                 "Proposal id : ", Strings.toString(i), 
-                "  proposal description : ", _proposals[i].description);
+                "  proposal description : ", _proposals[i].description, "   nb votes : ", Strings.toString(_proposals[i].voteCount));
         }
 
         return result;
