@@ -108,11 +108,13 @@ contract Voting is Ownable {
     * @dev We must let the visibility public, as the method is called internally by "registerVoters"
     * @notice
     *   Adds a voter to the list
+    *   Will trigger an error if the address has already been added to the whitelist
     *   Only the contract's owner can call this method
     * @param voterAddress The address to add to the whitelist
     */
     function registerVoter(address voterAddress) public onlyOwner {
         require(voterAddress != address(0), "The given address is empty !");
+        require(!_votersMap[voterAddress].isRegistered, string.concat("This address is already registered !"));
 
         _votersMap[voterAddress] = Voter(true, false, 0);
         _votersWhitelist.push(voterAddress);
@@ -124,12 +126,13 @@ contract Voting is Ownable {
     * @author Julien P.
     * @notice 
     *   Adds a list of voters
+    *   Will ignore the addresses already added to the whitelist, to avoir reverting the whole transaction
     *   Only the contract's owner can call this method 
     * @param votersAddresses an array of voters addresses to add to the whitelist
     */
     function registerVoters(address[] calldata votersAddresses) external onlyOwner {
         for(uint i; i < votersAddresses.length; i++) {
-            registerVoter(votersAddresses[i]);
+            if (!_votersMap[votersAddresses[i]].isRegistered) registerVoter(votersAddresses[i]);
         }
     }
 
