@@ -310,9 +310,7 @@ contract Voting is Ownable {
             result[0] = string.concat("Nb blanck votes : ", Strings.toString(_proposals[0].voteCount));
 
             for (uint i = 1; i <= _nbProposals; i++) {
-                result[i - 1] = string.concat(
-                    "Proposal id : ", Strings.toString(i), 
-                    "  proposal description : ", _proposals[i].description);
+                result[i - 1] = _getProposalString(_proposals[i], i);
             }
         }
 
@@ -333,9 +331,7 @@ contract Voting is Ownable {
         // TODO : if he hasn't voted, show -1 on proposal id, because 0 is blacnk vote
 
         for (uint i; i < _votersWhitelist.length - 1; i++) {
-            result[i] = string.concat(
-                "Voter : ", Strings.toHexString(uint256(uint160(_votersWhitelist[i])), 20), 
-                "  proposal id voted : ", Strings.toString(_votersMap[_votersWhitelist[i]].votedProposalId));
+            result[i] = _getVoterString(_votersMap[_votersWhitelist[i]], _votersWhitelist[i]);
         }
 
         return result;
@@ -347,15 +343,15 @@ contract Voting is Ownable {
     * @notice 
     *   Get a voter by his address
     *   Trigger an error if this address isn't registered
-    * @return   Voter The voter corresponding to the given address
+    * @return   String The voter corresponding to the given address
     */
-    function getVoter(address voterAddress) external view returns (Voter memory) {
-        Voter memory result = _votersMap[voterAddress];
+    function getVoter(address voterAddress) external view returns (string memory) {
+        Voter memory voter = _votersMap[voterAddress];
         
         // If 'isRegistered' is false, it means that it's a default value returned, and that there is no voter with this address
-        require(result.isRegistered, "There is no registered voter with this address !");
+        require(voter.isRegistered, "There is no registered voter with this address !");
 
-        return result;
+        return _getVoterString(voter, voterAddress);
     }
 
 
@@ -364,15 +360,15 @@ contract Voting is Ownable {
     * @notice 
     *   Get a proposal by her id
     *   Trigger an error if there is no proposal with this id
-    * @return   Proposal  The proposal with the given id
+    * @return   String  The proposal with the given id
     */
-    function getProposal(uint proposalId) external view returns (Proposal memory) {
-        Proposal memory result = _proposals[proposalId];
+    function getProposal(uint proposalId) external view returns (string memory) {
+        Proposal memory proposal = _proposals[proposalId];
 
         // If found proposal description is empty, it means that it's a default value returned, and that there is no proposal with this id
-        require(bytes(result.description).length == 0, "There is no proposal with this id !");
+        require(bytes(proposal.description).length > 0, "There is no proposal with this id !");
 
-        return result;
+        return _getProposalString(proposal, proposalId);
     }
     
 
@@ -409,5 +405,33 @@ contract Voting is Ownable {
         }
 
         return missingVotes;
+    }
+
+    /*
+    * @author Julien P.
+    * @dev Used to convert a proposal to displayable string
+    * @param
+    *   Proposal    The proposal to convert
+    *   uint    The proposal id
+    * @return   string  The proposal in a displayable string
+    */
+    function _getProposalString(Proposal memory proposal, uint proposalId) internal pure returns (string memory) {
+        return string.concat(
+                "Proposal id : ", Strings.toString(proposalId), 
+                " || proposal description : ", proposal.description);
+    }
+
+    /*
+    * @author Julien P.
+    * @dev Used to convert a voter to displayable string
+    * @param    Voter    The voter to convert
+    * @return   string  The voter in a displayable string
+    */
+    function _getVoterString(Voter memory voter, address voterAddress) internal pure returns (string memory) {
+        return string.concat(
+                "Voter : ", Strings.toHexString(uint256(uint160(voterAddress)), 20), 
+                " || proposal id voted : ", 
+                // If the voted proposal id equals 0, it means that the user hasn't vote
+                voter.votedProposalId > 0 ? Strings.toString(voter.votedProposalId) : "hasn't voted");
     }
 }
