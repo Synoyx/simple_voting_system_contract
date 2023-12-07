@@ -17,6 +17,7 @@ Apart from what's asked in the exercise's statement, here is what I considered a
   - Given addresses should be real
   - You can't change the workflow status if it breaks the intended workflow (adding voters => start proposals time => end proposal time => start vote time => end vote time => compute results)
   - Also, some operations can only be made if the current workflow status is in a certain stage
+  - You can't start proposal time without adding at least one user to the whitelist, otherwise it would be useless
   - You can't compute the winning proposal if there are no proposals
   - You can't vote twice, and you can only vote for an existing proposal
 - To answer to the statement "Vote isn't secret to whitelisted users", I chose to let my voters map as private, and make a limited access getter : showCurrentVotes(). Also, I decided to make this getter output something more user friendly than default Solidity mapping logs, as there is not frond-end to do it

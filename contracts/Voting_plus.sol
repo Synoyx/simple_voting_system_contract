@@ -137,9 +137,12 @@ contract Voting is Ownable {
     * @author Julien P.
     * @notice 
     *   Checks if the workflow status is in the right state, then start the proposal time.
+    *   There must be at least one voter added in the white list to start proposal time, otherwise it's useless
     *   Only the contract's owner can call this method
     */
     function startProposalTime() external onlyOwner CheckStatusIsGood(WorkflowStatus.RegisteringVoters) {
+        require(_votersWhitelist.length > 1, "You must add at least one voter to start proposal time !");
+
         emit WorkflowStatusChange(_workflowStatus, WorkflowStatus.ProposalsRegistrationStarted);
         _workflowStatus = WorkflowStatus.ProposalsRegistrationStarted;
     }
