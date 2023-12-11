@@ -345,6 +345,7 @@ contract VotingPlus is IVoting {
                 && curProposal.lastVoteTimestamp <  winningProposal.lastVoteTimestamp) {
                     // If there is an ex-aequo, we take the first proposal to reach this vote amount
                     // This condition also ensure that the default _winningConditionValue won't be returned to the user
+                    // If there is no vote, the ex-aequo will be treated as this : the first added proposal is the winner
                     _winningProposalIdCopy = i;
             } else if (winningProposal.lastVoteTimestamp == 0) {
                 // If the winning proposal id is the default value, replace it

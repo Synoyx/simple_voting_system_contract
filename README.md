@@ -59,15 +59,16 @@ This should result in this :
 
 ## Gas optimization
 
-On Voting plus, I tried to make some gas optimisation. And depite having more functionnalities on voting plus, most of the method takes now less gas :
+On Voting plus, I tried to make some gas optimisation. And depite having more functionnalities on voting plus, most of the methods takes now less gas :
 
 ![alt text](https://i.postimg.cc/zXTcvrFT/gas-Optimization.png)
 
+The repport take in account the sum of all calls made during the gasTestConsumptionScenario() + all the other 38 unit tests. I chose to keep it like that, as it give a more representative datas.
 You can generate the repport by running "forge test --gas-report" at the root of the project.
 
 Here is the list of optimizations done :
 
-- Remove ownable, to use custom owner test. I made the variable immutable, this make each access to the variable cost less
+- Removed ownable, to use custom owner test. I made the variable immutable, this make each access to the variable cost less
 - When a "primitive" state variable is used more than once in a method, made a copy of it then used it, because accessing a memory variable cost less than a storage one
 - When using a for loop, don't give default value to uint i
 - When using a for loop, if the condition call a method, like someArray.length, stored it in a variable before the loop, then used this variable for the condition. This avoids calling the method for every turn of the loop
@@ -76,3 +77,21 @@ Here is the list of optimizations done :
 - Placed each replace required in a modifier, because modifier cost less than testing a condition at the beginning of a method
 - Changed variable declaration order, to try to stack them in the same slot. Only the boolean variable allowed me to do that, other variables were too big
 - When it was possible, replaced i++ by ++i, as pre-incrementation is cheaper
+
+Here is a comparison gas consumption for each line of the repport (I only take average values):
+
+- Deployment cost : from **1 667 885** to **1 553 170**
+- Get owner : from **365** to **218**
+- Register voters : from **73 376** to **72 929**. The difference is tiny because Voting plus has an additionnary test in his method
+- Register voter : from **70 796** to **61 962**
+- Start proposal time : from **2 976** to **21 641** I don't understand why this particular method cost so much, it's the same
+- Make proposal : from **38 002** to **57 165** The difference hhere is explained by the fact that in voting plus, Proposal struct has a timestamp added. When a new proposal is made, I need to store the current timestamp in it, and this cost a lot of gas
+- End proposal time : from **3 227** to **2 306**
+- Start vote time : from **2 969** to **2 004**
+- Vote : from **27 841** to **27 940** My assumption is that as the proposals are a little bigger struct, modifiying them cost a little more gas
+- Show current votes : from **20 261** to **20 019**
+- Show proposals : from **4 326** to **10 109** There are some additionary lines on voting_plus, to handle blanck votes, than explain the cost
+- Get voter : from **11 073** to **11 027** There are some additionary lines on voting_plus, to handle blanck votes, than explain the cost
+- Get proposal : from **3 647** to **4 386** My assumption is that as the proposals are a little bigger struct, modifiying them cost a little more gas
+- End vote time + compute winning : from **20 858** to **29 623** We need to compare here endVoteTime + computeWinning from Voting, to endVoteTime in VotingPlus, as he made both in one. The supplementary cost is explained by the fact that there are additionnal test in voting plus (test missing votes)
+- Get winner : from **3 483** to **2 836**
