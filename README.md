@@ -38,3 +38,19 @@ For this version, I decided to add following logics :
 - If there is an tie vote during vote tally, the winning proposal will be the first to reach the maximum vote amount. To do that, I added a property "lastVoteTimestamp" on the Proposal struct
 - I now allow the voters to vote 0, which is a blank vote. It will allow the administrator to see that everyone has voted. It won't change anything to the results, except if there are only blank votes : if everyone made a blank vote, the administrator will be able to compute results, and the winning proposal will be the first proposed (tie vote situation)
 - As there is no point of making 2 separate phases for ending vote time and tally votes, the computation of winning proposal will occur automatically when administrator closes vote time. This avoids a useless transaction cost.
+
+## Unit test
+
+Unit test has been done to test all external methods, but also the general workflow of voting.
+There are a total of 39 unit test, made for both Voting & Voting plus.
+For that purpose, I used and interface for Voting & Voting plus, that allowed me to write only once tests, that then can be used for both contract.
+
+Files can be found here :
+
+- test/Voting.t.sol : the file with all unit test. Used to test Voting contract
+- test/Voting_plus.t.sol : Herits from VotingTest, to get all the unit test already done. Instead of instanciating Voting, will instanciate Voting plus. Will also override some unit test method, because voting plus has sometime a behaviour different
+
+You can run all tests by using command 'forge test' at the root of the project.
+This should result in this :
+
+![alt text](https://postimg.cc/qhkBXB5Q)
