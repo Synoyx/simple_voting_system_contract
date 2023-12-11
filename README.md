@@ -53,4 +53,4 @@ Files can be found here :
 You can run all tests by using command 'forge test' at the root of the project.
 This should result in this :
 
-![alt text](https://postimg.cc/qhkBXB5Q)
+![alt text](https://i.postimg.cc/gJhwpnq9/testOk.png)
