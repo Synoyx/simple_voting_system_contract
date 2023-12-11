@@ -62,3 +62,17 @@ This should result in this :
 On Voting plus, I tried to make some gas optimisation. And depite having more functionnalities on voting plus, most of the method takes now less gas :
 
 ![alt text](https://i.postimg.cc/zXTcvrFT/gas-Optimization.png)
+
+You can generate the repport by running "forge test --gas-report" at the root of the project.
+
+Here is the list of optimizations done :
+
+- Remove ownable, to use custom owner test. I made the variable immutable, this make each access to the variable cost less
+- When a "primitive" state variable is used more than once in a method, made a copy of it then used it, because accessing a memory variable cost less than a storage one
+- When using a for loop, don't give default value to uint i
+- When using a for loop, if the condition call a method, like someArray.length, stored it in a variable before the loop, then used this variable for the condition. This avoids calling the method for every turn of the loop
+- When using a for loop, incrementing i with "unchecked { ++i; }", this avoid overflow check in the EVM and save some gas
+- Removed each require, to replace them with if/revert, and custom errors.
+- Placed each replace required in a modifier, because modifier cost less than testing a condition at the beginning of a method
+- Changed variable declaration order, to try to stack them in the same slot. Only the boolean variable allowed me to do that, other variables were too big
+- When it was possible, replaced i++ by ++i, as pre-incrementation is cheaper
