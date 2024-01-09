@@ -26,4 +26,4 @@ jobs:
       - name: List files
         run: ls -l
       - name: Launch analyse
-        run: myth analyze simple_voting_system/src/Voting.sol
+        run: myth analyze ./src/Voting.sol
