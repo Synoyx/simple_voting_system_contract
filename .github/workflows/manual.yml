@@ -6,7 +6,7 @@ name: Manual workflow
 # or API.
 on:
   push:
-    branches: [main] 
+    branches: [main]
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
@@ -17,8 +17,8 @@ jobs:
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-    # Runs a single command using the runners shell
-    - name: Install mythril
-      run: pip3 install mythril
-    - name: Launch analyse
-      run: myth analyze .
+      # Runs a single command using the runners shell
+      - name: Install mythril
+        run: pip3 install mythril
+      - name: Launch analyse
+        run: myth analyze ./src/Voting.sol
