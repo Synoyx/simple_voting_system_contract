@@ -17,8 +17,13 @@ jobs:
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
       # Runs a single command using the runners shell
       - name: Install mythril
         run: pip3 install mythril
+      - name: List files
+        run: ls -l
       - name: Launch analyse
-        run: myth analyze ./src/Voting.sol
+        run: myth analyze simple_voting_system/src/Voting.sol
